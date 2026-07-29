@@ -2,3 +2,5 @@ node_modules/
 .next/
 *.zip
 .env.local
+astitva-features/
+astitva-redesign/
