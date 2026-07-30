@@ -131,10 +131,11 @@ interface ReportViewProps {
   report: AuditReport
   onReset: () => void
   onCompare?: () => void
+  onAuditUrl?: (url: string) => void
   readOnly?: boolean
 }
 
-export default function ReportView({ report, onReset, onCompare, readOnly }: ReportViewProps) {
+export default function ReportView({ report, onReset, onCompare, onAuditUrl, readOnly }: ReportViewProps) {
   const [currentReport, setCurrentReport] = useState(report)
   const [shareMsg, setShareMsg] = useState('')
   const { scores } = currentReport
@@ -196,7 +197,7 @@ export default function ReportView({ report, onReset, onCompare, readOnly }: Rep
             {shareMsg || '🔗 Share'}
           </button>
           {/* History */}
-          {!readOnly && <HistoryPanel onReaudit={(url) => { onReset(); setTimeout(() => { /* trigger audit with url */ }, 100) }} />}
+          {!readOnly && onAuditUrl && <HistoryPanel onAuditUrl={onAuditUrl} />}
           {/* Compare */}
           {!readOnly && onCompare && (
             <button onClick={onCompare}
