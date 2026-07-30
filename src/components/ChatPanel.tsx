@@ -4,9 +4,16 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { AuditReport } from '@/lib/types'
 
-interface Msg { role: 'user' | 'assistant'; content: string }
+interface TraceStep { tool: string; args: Record<string, unknown> }
+interface Msg { role: 'user' | 'assistant'; content: string; trace?: TraceStep[] }
 
-const QUICK = ['What to fix first?', 'Tone deep dive', 'How to boost trust?', 'vs competitors']
+const QUICK = ['What to fix first?', 'Check the pricing page', 'How to boost trust?', 'vs Stripe']
+
+const TOOL_LABEL: Record<string, string> = {
+  rescrape_page: 'read page',
+  analyze_competitor: 'scored competitor',
+  regenerate_section: 're-analyzed section',
+}
 
 export default function ChatPanel({ report }: { report: AuditReport }) {
   const [open, setOpen] = useState(false)
@@ -35,7 +42,7 @@ export default function ChatPanel({ report }: { report: AuditReport }) {
         body: JSON.stringify({ message: msg, report, history: msgs.slice(-6) }),
       })
       const data = await res.json()
-      setMsgs(p => [...p, { role: 'assistant', content: data.reply }])
+      setMsgs(p => [...p, { role: 'assistant', content: data.reply, trace: data.trace }])
     } catch {
       setMsgs(p => [...p, { role: 'assistant', content: 'Something went wrong.' }])
     } finally {
@@ -81,9 +88,9 @@ export default function ChatPanel({ report }: { report: AuditReport }) {
             <div className="px-5 py-4 border-b flex items-center justify-between"
                  style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
               <div>
-                <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Audit AI</p>
+                <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Brand Agent</p>
                 <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
-                  {report.companyName} · {report.scores.overall}/100
+                  {report.companyName} · {report.scores.overall}/100 · can pull live data
                 </p>
               </div>
               <button onClick={() => setOpen(false)} className="text-lg leading-none"
@@ -93,7 +100,19 @@ export default function ChatPanel({ report }: { report: AuditReport }) {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {msgs.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  {!!m.trace?.length && (
+                    <div className="flex flex-wrap gap-1 mb-1 max-w-[88%]">
+                      {m.trace.map((t, ti) => (
+                        <span key={ti}
+                          className="text-[10px] px-2 py-0.5 rounded-full font-mono flex items-center gap-1"
+                          style={{ background: 'rgba(124,58,237,0.12)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.25)' }}>
+                          🔧 {TOOL_LABEL[t.tool] || t.tool}
+                          {Object.values(t.args || {})[0] ? `: ${Object.values(t.args)[0]}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div
                     className="max-w-[88%] text-sm px-3.5 py-2.5 rounded-2xl leading-relaxed"
                     style={{
